@@ -1,0 +1,22 @@
+## Interface: 120000
+## Title:|cffd6266cChatSignaturePlus|r
+## Notes: Adds a customizable identity/tag to your chat messages per channel.
+## Notes-deDE: Fügt deinen Chatnachrichten pro Kanal eine frei anpassbare Signatur/Identität hinzu.
+## Notes-frFR: Ajoute une signature/identité personnalisable à vos messages de discussion par canal.
+## Notes-esES: Añade una firma/identidad personalizable a tus mensajes de chat por canal.
+## Notes-esMX: Añade una firma/identidad personalizable a tus mensajes de chat por canal.
+## Notes-itIT: Aggiunge una firma/identità personalizzabile ai tuoi messaggi di chat per canale.
+## Notes-ptBR: Adiciona uma assinatura/identidade personalizável às suas mensagens de bate-papo por canal.
+## Notes-ruRU: Добавляет настраиваемую подпись/идентичность к вашим сообщениям чата для каждого канала.
+## Notes-koKR: 채널별로 채팅 메시지에 사용자 지정 서명/정체성을 추가합니다.
+## Notes-zhCN: 为每个频道的聊天消息添加可自定义的签名/身份。
+## Notes-zhTW: 為每個頻道的聊天訊息新增可自訂的簽名/身分。
+## Author: BloodDragon2580
+## Version: 1.0
+## IconTexture: Interface\AddOns\ChatSignaturePlus\Media\Texture\logo
+## SavedVariables:ChatSignaturePlusDB
+## SavedVariablesPerCharacter:ChatSignaturePlusSettings
+
+embeds.xml
+locales\locales.xml
+ChatSignaturePlus.lua
