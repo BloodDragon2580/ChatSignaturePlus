@@ -12,7 +12,7 @@
 ## Notes-zhCN: 为每个频道的聊天消息添加可自定义的签名/身份。
 ## Notes-zhTW: 為每個頻道的聊天訊息新增可自訂的簽名/身分。
 ## Author: BloodDragon2580
-## Version: 1.0
+## Version: 1.1
 ## IconTexture: Interface\AddOns\ChatSignaturePlus\Media\Texture\logo
 ## SavedVariables:ChatSignaturePlusDB
 ## SavedVariablesPerCharacter:ChatSignaturePlusSettings
