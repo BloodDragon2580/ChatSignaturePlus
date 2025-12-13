@@ -1,4 +1,4 @@
-## Interface: 120000
+## Interface: 120001
 ## Title:|cffd6266cChatSignaturePlus|r
 ## Notes: Adds a customizable identity/tag to your chat messages per channel.
 ## Notes-deDE: Fügt deinen Chatnachrichten pro Kanal eine frei anpassbare Signatur/Identität hinzu.
