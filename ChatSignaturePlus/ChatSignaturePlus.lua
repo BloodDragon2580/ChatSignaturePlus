@@ -318,9 +318,14 @@ function ChatSignaturePlus:OnInitialize()
     else
         self:Print(L["initialization.loaded"](self.db.global.version))
     end
-
-    -- WICHTIG: Hier hooken wir jetzt ChatEdit_SendText statt SendChatMessage
-    ChatSignaturePlus:RawHook("ChatEdit_SendText", true)
+    -- WICHTIG (TWW 11.2.7+): Hooke SendChatMessage + C_ChatInfo.SendChatMessage (und BN Whisper)
+    self:RawHook("SendChatMessage", true)
+    if C_ChatInfo and C_ChatInfo.SendChatMessage then
+        self:RawHook(C_ChatInfo, "SendChatMessage", "C_ChatInfo_SendChatMessage", true)
+    end
+    if BNSendWhisper then
+        self:RawHook("BNSendWhisper", true)
+    end
 end
 
 function ChatSignaturePlus:eventHandler(event, ...)
@@ -685,45 +690,81 @@ end
 -- CHAT MESSAGE HANDLING
 -------------------------------------------------
 
--- Neues Hook: ChatEdit_SendText – wird aufgerufen, wenn du ENTER drückst
-function ChatSignaturePlus:ChatEdit_SendText(editBox, addHistory)
-    if self.db and self.db.profile and self.db.profile.enabled then
-        local msg = editBox:GetText()
-        if msg and msg ~= "" then
-            local chatType = editBox:GetAttribute("chatType") or editBox.chatType
-            local channelTarget = editBox:GetAttribute("channelTarget") or editBox.channelTarget
-            local channelConfig = nil
+-- Neues Hook (TWW 11.2.7+): Blizzard nutzt teils SendChatMessage() UND teils C_ChatInfo.SendChatMessage().
+-- Daher hooken wir beide (plus BN-Whisper), damit die Signatur/Nickname wieder zuverlässig angehängt wird.
 
-            if chatType == "CHANNEL" then
-                local id, name, instanceID = GetChannelName(channelTarget)
-                if name then
-                    local s, e, clubId, streamId = string.find(name, "Community:(%d+):(%d+)")
-                    if clubId and streamId then
-                        local clubIdN = tonumber(clubId)
-                        local streamIdN = tonumber(streamId)
-                        if self.db.profile.channels.communities[clubIdN] 
-                           and self.db.profile.channels.communities[clubIdN].enabled
-                           and self.db.profile.channels.communities[clubIdN].streams[streamIdN] then
-                            channelConfig = self.db.profile.channels.communities[clubIdN].streams[streamIdN]
-                        end
-                    else
-                        channelConfig = self.db.profile.channels.customs[name]
-                    end
+local function CSP_GetChannelConfig(self, chatType, channelTarget)
+    local channelConfig = nil
+
+    if chatType == "CHANNEL" then
+        local _, name = GetChannelName(channelTarget)
+        if name then
+            -- Community Channel?
+            local _, _, clubId, streamId = string.find(name, "Community:(%d+):(%d+)")
+            if clubId and streamId then
+                clubId, streamId = tonumber(clubId), tonumber(streamId)
+                local comm = self.db.profile.channels.communities[clubId]
+                if comm and comm.enabled and comm.streams and comm.streams[streamId] then
+                    channelConfig = comm.streams[streamId]
                 end
             else
-                channelConfig = self.db.profile.channels[chatType]
+                channelConfig = self.db.profile.channels.customs[name]
             end
+        end
+    else
+        channelConfig = self.db.profile.channels[chatType]
+    end
 
-            if channelConfig then
-                local newMsg = self:AlterMessage(msg, channelConfig)
-                if newMsg and type(newMsg) == "string" then
-                    editBox:SetText(newMsg)
-                end
+    -- Fallback: Wenn keine ChannelConfig gefunden wird, aber eine Haupt-Identity gesetzt ist,
+    -- wende sie auf Standard-Chattypen an.
+    if (not channelConfig) then
+        local mainId = (self.db.profile.identity or "")
+        if mainId ~= "" then
+            local supported = {
+                SAY = true,
+                YELL = true,
+                GUILD = true,
+                OFFICER = true,
+                PARTY = true,
+                RAID = true,
+                INSTANCE_CHAT = true,
+                WHISPER = true,
+                BN_WHISPER = true,
+            }
+            if supported[chatType] then
+                channelConfig = { enabled = true, identity = "" }
             end
         end
     end
 
-    return self.hooks["ChatEdit_SendText"](editBox, addHistory)
+    return channelConfig
+end
+
+local function CSP_Apply(self, msg, chatType, channelTarget)
+    if not (self.db and self.db.profile and self.db.profile.enabled) then return msg end
+    if not msg or msg == "" then return msg end
+
+    local channelConfig = CSP_GetChannelConfig(self, chatType, channelTarget)
+    if channelConfig and channelConfig.enabled then
+        return self:AlterMessage(msg, channelConfig)
+    end
+
+    return msg
+end
+
+function ChatSignaturePlus:SendChatMessage(msg, chatType, language, channelTarget)
+    msg = CSP_Apply(self, msg, chatType, channelTarget)
+    return self.hooks.SendChatMessage(msg, chatType, language, channelTarget)
+end
+
+function ChatSignaturePlus:C_ChatInfo_SendChatMessage(msg, chatType, language, channelTarget)
+    msg = CSP_Apply(self, msg, chatType, channelTarget)
+    return self.hooks[C_ChatInfo].SendChatMessage(msg, chatType, language, channelTarget)
+end
+
+function ChatSignaturePlus:BNSendWhisper(bnetIDAccount, msg, ...)
+    msg = CSP_Apply(self, msg, "BN_WHISPER", nil)
+    return self.hooks.BNSendWhisper(bnetIDAccount, msg, ...)
 end
 
 --Has fun in special days
